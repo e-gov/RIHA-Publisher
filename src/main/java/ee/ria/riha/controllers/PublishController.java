@@ -14,7 +14,7 @@ public class PublishController {
   @Autowired InfosystemStorageService storageService;
 
   @CrossOrigin
-  @RequestMapping(value = "/infosystems/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(value = "/systems.json", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
   public String infosystems() {
     return storageService.load();
   }
