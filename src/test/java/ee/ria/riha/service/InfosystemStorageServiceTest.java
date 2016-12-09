@@ -15,12 +15,12 @@ public class InfosystemStorageServiceTest {
   @Before
   public void setUp() throws Exception {
     service = new InfosystemStorageService();
-    service.path = Files.createTempFile("", "");
+    service.filePath = Files.createTempFile("", "");
   }
 
   @Test
   public void load() throws IOException {
-    Files.write(service.path, "[{\"savedJson\":\"true\"}]".getBytes());
+    Files.write(service.filePath, "[{\"savedJson\":\"true\"}]".getBytes());
 
     assertEquals("[{\"savedJson\":\"true\"}]", service.load());
   }
@@ -29,6 +29,6 @@ public class InfosystemStorageServiceTest {
   public void save() throws IOException {
     service.save("[{\"savedJson\":\"false\"}]");
 
-    assertEquals("[{\"savedJson\":\"false\"}]", new String(Files.readAllBytes(service.path)));
+    assertEquals("[{\"savedJson\":\"false\"}]", new String(Files.readAllBytes(service.filePath)));
   }
 }

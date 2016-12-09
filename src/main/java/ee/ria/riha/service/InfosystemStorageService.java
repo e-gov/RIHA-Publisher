@@ -12,11 +12,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Service
 public class InfosystemStorageService {
 
-  Path path = Paths.get("infosystems.json");
+  Path filePath = Paths.get("infosystems.json");
 
   public String load() {
     try {
-      return new String(Files.readAllBytes(path), UTF_8);
+      return new String(Files.readAllBytes(filePath), UTF_8);
     }
     catch (IOException e) {
       throw new RuntimeException(e);
@@ -25,7 +25,7 @@ public class InfosystemStorageService {
 
   public void save(String infosystemsJson) {
     try {
-      Files.write(path, infosystemsJson.getBytes(UTF_8));
+      Files.write(filePath, infosystemsJson.getBytes(UTF_8));
     }
     catch (IOException e) {
       throw new RuntimeException(e);
