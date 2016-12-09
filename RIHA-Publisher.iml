@@ -63,5 +63,6 @@
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.4.5" level="project" />
     <orderEntry type="library" name="Maven: commons-codec:commons-codec:1.10" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:fluent-hc:4.5.1" level="project" />
+    <orderEntry type="library" name="jasmine-DefinitelyTyped" level="application" />
   </component>
 </module>
