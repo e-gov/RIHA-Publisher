@@ -1,5 +1,6 @@
 package ee.ria.riha.service;
 
+import ee.ria.riha.models.Infosystem;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -8,12 +9,14 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class HarvestServiceTest {
 
@@ -47,34 +50,23 @@ public class HarvestServiceTest {
       "}" +
       "}" +
       "]";
-    System.out.println(infosystemsData);
     doReturn(infosystemsData).when(service).getData("data-url");
 
     service.harvestInfosystems();
 
-    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(storageService).save(captor.capture());
 
-    assertEquals("[" +
-      "{" +
-      "\"owner\":\"owner\"," +
-      "\"meta\":{" +
-      "\"URI\":\"/owner/shortname1\"" +
-      "}," +
-      "\"approval\":{" +
-      "\"timestamp\":\"2016-01-01T10:00:00\"," +
-      "\"status\":\"MITTE KOOSKÕLASTATUD\"" +
-      "}," +
-      "\"shortname\":\"shortname1\"" +
-      "}," +
-      "{" +
-      "\"owner\":\"owner\"," +
-      "\"meta\":{" +
-      "\"URI\":\"/70000740/Õppurite register\"" +
-      "}," +
-      "\"shortname\":\"shortname3\"" +
-      "}" +
-      "]", captor.getValue());
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(2, infosystems.size());
+    assertEquals("{\"owner\":\"owner\"," +
+      "\"meta\":{\"URI\":\"/owner/shortname1\"}," +
+      "\"approval\":{\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
+      "\"shortname\":\"shortname1\"}", infosystems.get(0).getJson().toString());
+
+    assertEquals("{\"owner\":\"owner\"," +
+      "\"meta\":{\"URI\":\"/70000740/Õppurite register\"}," +
+      "\"shortname\":\"shortname3\"}", infosystems.get(1).getJson().toString());
   }
 
   @Test
@@ -89,13 +81,12 @@ public class HarvestServiceTest {
 
     service.harvestInfosystems();
 
-    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(storageService).save(captor.capture());
-
-    assertEquals("[{\"meta\":{\"URI\":\"/owner/shortname1\"}}," +
-                  "{\"meta\":{\"URI\":\"/owner/shortname2\"}}]",
-      captor.getValue());
-
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(2, infosystems.size());
+    assertEquals("{\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString());
+    assertEquals("{\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString());
     verify(service).getData("data-url");
     verify(service).getData("other-url");
   }
@@ -115,11 +106,13 @@ public class HarvestServiceTest {
 
     service.harvestInfosystems();
 
-    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(storageService).save(captor.capture());
-
-    assertEquals("[{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]", captor.getValue());
-
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(1, infosystems.size());
+    assertEquals(
+      "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      infosystems.get(0).getJson().toString());
     verify(service).getData("data-url");
     verify(service).getData("other-url");
   }
@@ -136,9 +129,12 @@ public class HarvestServiceTest {
 
     service.harvestInfosystems();
 
-    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(storageService).save(captor.capture());
-
-    assertEquals("[{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]", captor.getValue());
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(1, infosystems.size());
+    assertEquals(
+      "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      infosystems.get(0).getJson().toString());
   }
 }

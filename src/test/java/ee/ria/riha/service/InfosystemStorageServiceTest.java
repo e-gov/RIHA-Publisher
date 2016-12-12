@@ -1,11 +1,14 @@
 package ee.ria.riha.service;
 
+import ee.ria.riha.models.Infosystem;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 
 public class InfosystemStorageServiceTest {
@@ -27,7 +30,7 @@ public class InfosystemStorageServiceTest {
 
   @Test
   public void save() throws IOException {
-    service.save("[{\"savedJson\":\"false\"}]");
+    service.save(singletonList(new Infosystem(new JSONObject("{\"savedJson\":\"false\"}"))));
 
     assertEquals("[{\"savedJson\":\"false\"}]", new String(Files.readAllBytes(service.filePath)));
   }

@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static java.util.stream.Collectors.toList;
 import static org.apache.http.client.fluent.Request.Get;
 
 @Service
@@ -36,7 +35,7 @@ public class HarvestService {
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
     List<Infosystem> infosystems = addApprovals(getInfosystems());
-    infosystemStorageService.save(new JSONArray(infosystems.stream().map(Infosystem::getJson).collect(toList())).toString());
+    infosystemStorageService.save(infosystems);
   }
 
   private List<Infosystem> getInfosystems() {

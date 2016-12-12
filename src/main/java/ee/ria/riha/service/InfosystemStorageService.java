@@ -1,13 +1,17 @@
 package ee.ria.riha.service;
 
+import ee.ria.riha.models.Infosystem;
+import org.json.JSONArray;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class InfosystemStorageService {
@@ -23,9 +27,10 @@ public class InfosystemStorageService {
     }
   }
 
-  public void save(String infosystemsJson) {
+  public void save(List<Infosystem> infosystems) {
     try {
-      Files.write(filePath, infosystemsJson.getBytes(UTF_8));
+      String json = new JSONArray(infosystems.stream().map(Infosystem::getJson).collect(toList())).toString();
+      Files.write(filePath, json.getBytes(UTF_8));
     }
     catch (IOException e) {
       throw new RuntimeException(e);
