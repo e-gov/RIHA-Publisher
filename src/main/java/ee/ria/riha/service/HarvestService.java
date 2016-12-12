@@ -12,6 +12,7 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -79,8 +80,12 @@ public class HarvestService {
   }
 
   private void initProducers() {
-    try(InputStream inputStream = Files.newInputStream(Paths.get("producers.db"))) {
-      producers = new Properties();
+    Path path = Paths.get("producers.db");
+
+    producers = new Properties();
+    if (!path.toFile().exists()) return;
+
+    try (InputStream inputStream = Files.newInputStream(path)) {
       producers.load(inputStream);
     }
     catch (IOException e) {
