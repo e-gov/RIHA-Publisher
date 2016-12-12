@@ -35,10 +35,7 @@ public class HarvestService {
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
-
-    JSONArray allInfosystems = getInfosystems();
-
-    String infosystemsWithApprovalData = addApprovals(allInfosystems);
+    String infosystemsWithApprovalData = addApprovals(getInfosystems());
     infosystemStorageService.save(infosystemsWithApprovalData);
   }
 
@@ -51,23 +48,24 @@ public class HarvestService {
       JSONArray infosystems = new JSONArray(getData(url));
       for (int i = 0; i < infosystems.length(); i++) {
         JSONObject infosystem = infosystems.getJSONObject(i);
-        JSONObject existing = findInfosystem(allInfosystems, getId(infosystem));
-
-        if (existing == null) {
-          allInfosystems.add(infosystem);
-        }
-        else {
-          if (getUpdated(infosystem).isAfter(getUpdated(existing))) {
-            allInfosystems.remove(existing);
-            allInfosystems.add(infosystem);
-          }
-        }
+        merge(allInfosystems, infosystem);
       }
     }
     return new JSONArray(allInfosystems);
   }
 
-  LocalDateTime getUpdated(JSONObject infosystem) {
+  private void merge(List<JSONObject> allInfosystems, JSONObject infosystem) {
+    JSONObject existing = findInfosystem(allInfosystems, getId(infosystem));
+
+    if (existing == null) {
+      allInfosystems.add(infosystem);
+    } else if (getUpdated(infosystem).isAfter(getUpdated(existing))) {
+      allInfosystems.remove(existing);
+      allInfosystems.add(infosystem);
+    }
+  }
+
+  private LocalDateTime getUpdated(JSONObject infosystem) {
     return LocalDateTime.parse(infosystem.getJSONObject("status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
   }
 
