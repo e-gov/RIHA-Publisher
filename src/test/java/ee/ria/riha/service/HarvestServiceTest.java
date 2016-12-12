@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -22,7 +24,9 @@ public class HarvestServiceTest {
 
   @Test
   public void addApprovalData() {
-    service.infosystemsUrl = "data-url";
+    service.producers = new Properties();
+    service.producers.setProperty("riha-legacy", "data-url");
+
     doReturn("[{\"id\":\"/owner/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
       "{\"id\":\"/owner/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
       .when(service).getApprovalData();

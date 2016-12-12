@@ -7,9 +7,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.apache.http.client.fluent.Request.Get;
 
@@ -19,18 +24,39 @@ public class HarvestService {
   @Value("${approvals.url}")
   String approvalsUrl;
 
-  @Value("${infosystems.url}")
-  String infosystemsUrl;
+  Properties producers;
 
   @Autowired InfosystemStorageService infosystemStorageService;
 
+  @PostConstruct
+  public void onStartup() {
+    harvestInfosystems();
+  }
+
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
-    String data = getData(infosystemsUrl);
+    String data = getData(getProducers().getProperty("riha-legacy"));
     JSONArray infosystems = new JSONArray(data);
 
     String infosystemsWithApprovalData = addApprovals(infosystems);
     infosystemStorageService.save(infosystemsWithApprovalData);
+  }
+
+  Properties getProducers() {
+    if (producers == null) {
+      initProducers();
+    }
+    return producers;
+  }
+
+  private void initProducers() {
+    try(InputStream inputStream = Files.newInputStream(Paths.get("producers.db"))) {
+      producers = new Properties();
+      producers.load(inputStream);
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private String addApprovals(JSONArray infosystems) {
