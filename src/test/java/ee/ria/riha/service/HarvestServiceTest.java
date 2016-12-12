@@ -22,6 +22,7 @@ public class HarvestServiceTest {
 
   @Test
   public void addApprovalData() {
+    service.infosystemsUrl = "data-url";
     doReturn("[{\"id\":\"/owner/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
       "{\"id\":\"/owner/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
       .when(service).getApprovalData();
@@ -42,7 +43,7 @@ public class HarvestServiceTest {
       "}" +
       "}" +
       "]";
-    doReturn(infosystemsData).when(service).getInfosystemsData();
+    doReturn(infosystemsData).when(service).getData("data-url");
 
     service.harvestInfosystems();
 

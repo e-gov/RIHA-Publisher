@@ -26,12 +26,14 @@ public class HarvestService {
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
-    String infosystemsWithApprovalData = addApprovals(getInfosystemsData());
+    String data = getData(infosystemsUrl);
+    JSONArray infosystems = new JSONArray(data);
+
+    String infosystemsWithApprovalData = addApprovals(infosystems);
     infosystemStorageService.save(infosystemsWithApprovalData);
   }
 
-  private String addApprovals(String infosystemsJson) {
-    JSONArray infosystems = new JSONArray(infosystemsJson);
+  private String addApprovals(JSONArray infosystems) {
     merge(infosystems, getApprovals());
     return infosystems.toString();
   }
@@ -56,9 +58,9 @@ public class HarvestService {
     }
   }
 
-  String getInfosystemsData() {
+  String getData(String url) {
     try {
-      return Get(infosystemsUrl).execute().returnContent().asString();
+      return Get(url).execute().returnContent().asString();
     }
     catch (IOException e) {
       throw new RuntimeException(e);
@@ -66,11 +68,6 @@ public class HarvestService {
   }
 
   String getApprovalData() {
-    try {
-      return Get(approvalsUrl).execute().returnContent().asString();
-    }
-    catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return getData(approvalsUrl);
   }
 }
