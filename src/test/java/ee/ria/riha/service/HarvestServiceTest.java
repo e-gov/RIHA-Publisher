@@ -47,6 +47,7 @@ public class HarvestServiceTest {
       "}" +
       "}" +
       "]";
+    System.out.println(infosystemsData);
     doReturn(infosystemsData).when(service).getData("data-url");
 
     service.harvestInfosystems();
@@ -74,5 +75,38 @@ public class HarvestServiceTest {
       "\"shortname\":\"shortname3\"" +
       "}" +
       "]", captor.getValue());
+  }
+
+  @Test
+  public void loadDataFromMultipleProducers() {
+    service.producers = new Properties();
+    service.producers.setProperty("riha-legacy", "data-url");
+    service.producers.setProperty("other-producer", "other-url");
+
+    doReturn("[]").when(service).getApprovalData();
+
+    doReturn("[{" +
+      "    \"shortname\": \"shortname1\"," +
+      "    \"owner\": \"owner\"," +
+      "    \"meta\": {\"URI\": \"/owner/shortname1\"}" +
+      "  }]").when(service).getData("data-url");
+
+    doReturn("[{" +
+      "    \"shortname\": \"shortname2\"," +
+      "    \"owner\": \"owner\"," +
+      "    \"meta\": {\"URI\": \"/owner/shortname2\"}" +
+      "  }]").when(service).getData("other-url");
+
+    service.harvestInfosystems();
+
+    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    verify(storageService).save(captor.capture());
+
+    assertEquals("[{\"owner\":\"owner\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"shortname\":\"shortname1\"}," +
+                  "{\"owner\":\"owner\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"shortname\":\"shortname2\"}]",
+      captor.getValue());
+
+    verify(service).getData("data-url");
+    verify(service).getData("other-url");
   }
 }

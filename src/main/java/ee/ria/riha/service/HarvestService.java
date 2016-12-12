@@ -35,10 +35,19 @@ public class HarvestService {
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
-    String data = getData(getProducers().getProperty("riha-legacy"));
-    JSONArray infosystems = new JSONArray(data);
 
-    String infosystemsWithApprovalData = addApprovals(infosystems);
+    Properties producers = getProducers();
+    JSONArray allInfosystems = new JSONArray();
+
+    for (String owner : producers.stringPropertyNames()) {
+      String url = producers.getProperty(owner);
+      JSONArray infosystems = new JSONArray(getData(url));
+      for (int i = 0; i < infosystems.length(); i++) {
+        allInfosystems.put(infosystems.getJSONObject(i));
+      }
+    }
+
+    String infosystemsWithApprovalData = addApprovals(allInfosystems);
     infosystemStorageService.save(infosystemsWithApprovalData);
   }
 
