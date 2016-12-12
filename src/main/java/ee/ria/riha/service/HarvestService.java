@@ -35,11 +35,11 @@ public class HarvestService {
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
-    String infosystemsWithApprovalData = addApprovals(getInfosystems());
-    infosystemStorageService.save(infosystemsWithApprovalData);
+    List<Infosystem> infosystems = addApprovals(getInfosystems());
+    infosystemStorageService.save(new JSONArray(infosystems.stream().map(Infosystem::getJson).collect(toList())).toString());
   }
 
-  private JSONArray getInfosystems() {
+  private List<Infosystem> getInfosystems() {
     List<Infosystem> allInfosystems = new ArrayList<>();
     Properties producers = getProducers();
 
@@ -51,7 +51,7 @@ public class HarvestService {
         merge(allInfosystems, infosystem);
       }
     }
-    return new JSONArray(allInfosystems.stream().map(Infosystem::getJson).collect(toList()));
+    return allInfosystems;
   }
 
   private void merge(List<Infosystem> infosystems, Infosystem infosystem) {
@@ -89,9 +89,9 @@ public class HarvestService {
     }
   }
 
-  private String addApprovals(JSONArray infosystems) {
+  private List<Infosystem> addApprovals(List<Infosystem> infosystems) {
     merge(infosystems, getApprovals());
-    return infosystems.toString();
+    return infosystems;
   }
 
   private Map<String, JSONObject> getApprovals() {
@@ -106,12 +106,12 @@ public class HarvestService {
     return approvalsById;
   }
 
-  private void merge(JSONArray infosystems, Map<String, JSONObject> approvalsById) {
-    for (int i = 0; i < infosystems.length(); i++) {
-      JSONObject jsonObject = infosystems.getJSONObject(i);
-
-      String id = new Infosystem(jsonObject).getId();
-      if (approvalsById.containsKey(id)) jsonObject.put("approval", approvalsById.get(id));
+  private void merge(List<Infosystem> infosystems, Map<String, JSONObject> approvalsById) {
+    for (Infosystem infosystem : infosystems) {
+      String id = infosystem.getId();
+      if (approvalsById.containsKey(id)) {
+        infosystem.setApproval(approvalsById.get(id));
+      }
     }
   }
 

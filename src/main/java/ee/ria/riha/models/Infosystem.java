@@ -21,6 +21,10 @@ public class Infosystem {
     return LocalDateTime.parse(json.getJSONObject("status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
   }
 
+  public void setApproval(JSONObject approval){
+    json.put("approval", approval);
+  }
+
   public JSONObject getJson() {
     return json;
   }
