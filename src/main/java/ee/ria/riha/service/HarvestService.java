@@ -12,9 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 import static org.apache.http.client.fluent.Request.Get;
 
@@ -36,22 +36,49 @@ public class HarvestService {
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
 
-    Properties producers = getProducers();
-    JSONArray allInfosystems = new JSONArray();
-
-    for (String owner : producers.stringPropertyNames()) {
-      String url = producers.getProperty(owner);
-      JSONArray infosystems = new JSONArray(getData(url));
-      for (int i = 0; i < infosystems.length(); i++) {
-        allInfosystems.put(infosystems.getJSONObject(i));
-      }
-    }
+    JSONArray allInfosystems = getInfosystems();
 
     String infosystemsWithApprovalData = addApprovals(allInfosystems);
     infosystemStorageService.save(infosystemsWithApprovalData);
   }
 
-  Properties getProducers() {
+  private JSONArray getInfosystems() {
+    List<JSONObject> allInfosystems = new ArrayList<>();
+    Properties producers = getProducers();
+
+    for (String owner : producers.stringPropertyNames()) {
+      String url = producers.getProperty(owner);
+      JSONArray infosystems = new JSONArray(getData(url));
+      for (int i = 0; i < infosystems.length(); i++) {
+        JSONObject infosystem = infosystems.getJSONObject(i);
+        JSONObject existing = findInfosystem(allInfosystems, getId(infosystem));
+
+        if (existing == null) {
+          allInfosystems.add(infosystem);
+        }
+        else {
+          if (getUpdated(infosystem).isAfter(getUpdated(existing))) {
+            allInfosystems.remove(existing);
+            allInfosystems.add(infosystem);
+          }
+        }
+      }
+    }
+    return new JSONArray(allInfosystems);
+  }
+
+  LocalDateTime getUpdated(JSONObject infosystem) {
+    return LocalDateTime.parse(infosystem.getJSONObject("status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+  }
+
+  private JSONObject findInfosystem(List<JSONObject> infosystems, String id) {
+    for (JSONObject infosystem : infosystems) {
+      if (getId(infosystem).equals(id)) return infosystem;
+    }
+    return null;
+  }
+
+  private Properties getProducers() {
     if (producers == null) {
       initProducers();
     }
@@ -88,9 +115,13 @@ public class HarvestService {
   private void merge(JSONArray infosystems, Map<String, JSONObject> approvalsById) {
     for (int i = 0; i < infosystems.length(); i++) {
       JSONObject jsonObject = infosystems.getJSONObject(i);
-      String id = jsonObject.getJSONObject("meta").getString("URI");
+      String id = getId(jsonObject);
       if (approvalsById.containsKey(id)) jsonObject.put("approval", approvalsById.get(id));
     }
+  }
+
+  private String getId(JSONObject infosystem) {
+    return infosystem.getJSONObject("meta").getString("URI");
   }
 
   String getData(String url) {
