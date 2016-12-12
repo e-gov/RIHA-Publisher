@@ -1,5 +1,6 @@
 package ee.ria.riha.service;
 
+import ee.ria.riha.models.Infosystem;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +13,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import static java.util.stream.Collectors.toList;
 import static org.apache.http.client.fluent.Request.Get;
 
 @Service
@@ -40,38 +40,34 @@ public class HarvestService {
   }
 
   private JSONArray getInfosystems() {
-    List<JSONObject> allInfosystems = new ArrayList<>();
+    List<Infosystem> allInfosystems = new ArrayList<>();
     Properties producers = getProducers();
 
     for (String owner : producers.stringPropertyNames()) {
       String url = producers.getProperty(owner);
       JSONArray infosystems = new JSONArray(getData(url));
       for (int i = 0; i < infosystems.length(); i++) {
-        JSONObject infosystem = infosystems.getJSONObject(i);
+        Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
         merge(allInfosystems, infosystem);
       }
     }
-    return new JSONArray(allInfosystems);
+    return new JSONArray(allInfosystems.stream().map(Infosystem::getJson).collect(toList()));
   }
 
-  private void merge(List<JSONObject> allInfosystems, JSONObject infosystem) {
-    JSONObject existing = findInfosystem(allInfosystems, getId(infosystem));
+  private void merge(List<Infosystem> infosystems, Infosystem infosystem) {
+    Infosystem existing = findInfosystem(infosystems, infosystem.getId());
 
     if (existing == null) {
-      allInfosystems.add(infosystem);
-    } else if (getUpdated(infosystem).isAfter(getUpdated(existing))) {
-      allInfosystems.remove(existing);
-      allInfosystems.add(infosystem);
+      infosystems.add(infosystem);
+    } else if (infosystem.getUpdated().isAfter(existing.getUpdated())) {
+      infosystems.remove(existing);
+      infosystems.add(infosystem);
     }
   }
 
-  private LocalDateTime getUpdated(JSONObject infosystem) {
-    return LocalDateTime.parse(infosystem.getJSONObject("status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-  }
-
-  private JSONObject findInfosystem(List<JSONObject> infosystems, String id) {
-    for (JSONObject infosystem : infosystems) {
-      if (getId(infosystem).equals(id)) return infosystem;
+  private Infosystem findInfosystem(List<Infosystem> infosystems, String id) {
+    for (Infosystem infosystem : infosystems) {
+      if (infosystem.getId().equals(id)) return infosystem;
     }
     return null;
   }
@@ -113,13 +109,10 @@ public class HarvestService {
   private void merge(JSONArray infosystems, Map<String, JSONObject> approvalsById) {
     for (int i = 0; i < infosystems.length(); i++) {
       JSONObject jsonObject = infosystems.getJSONObject(i);
-      String id = getId(jsonObject);
+
+      String id = new Infosystem(jsonObject).getId();
       if (approvalsById.containsKey(id)) jsonObject.put("approval", approvalsById.get(id));
     }
-  }
-
-  private String getId(JSONObject infosystem) {
-    return infosystem.getJSONObject("meta").getString("URI");
   }
 
   String getData(String url) {
