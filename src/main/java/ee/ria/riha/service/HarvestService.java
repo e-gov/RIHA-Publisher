@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,11 +31,6 @@ public class HarvestService {
   Properties producers;
 
   @Autowired InfosystemStorageService infosystemStorageService;
-
-  @PostConstruct
-  public void onStartup() {
-    harvestInfosystems();
-  }
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
@@ -67,7 +61,7 @@ public class HarvestService {
     JSONArray infosystems = new JSONArray(getData(url));
     for (int i = 0; i < infosystems.length(); i++) {
       Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
-      if (allowedOwners == null || allowedOwners.contains(infosystem.getOwner())) {
+      if (allowedOwners== null || allowedOwners.contains(infosystem.getOwner())) {
         merge(allInfosystems, infosystem);
       }
     }
