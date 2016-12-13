@@ -29,6 +29,12 @@ public class InfosystemStorageServiceTest {
   }
 
   @Test
+  public void load_notHarvestedYet() throws IOException {
+    service.filePath.toFile().delete();
+    assertEquals("[]", service.load());
+  }
+
+  @Test
   public void save() throws IOException {
     service.save(singletonList(new Infosystem(new JSONObject("{\"savedJson\":\"false\"}"))));
 

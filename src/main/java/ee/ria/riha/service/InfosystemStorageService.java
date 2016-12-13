@@ -20,6 +20,7 @@ public class InfosystemStorageService {
 
   public String load() {
     try {
+      if (!filePath.toFile().exists()) return "[]";
       return new String(Files.readAllBytes(filePath), UTF_8);
     }
     catch (IOException e) {
