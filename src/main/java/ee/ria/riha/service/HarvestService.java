@@ -47,50 +47,51 @@ public class HarvestService {
   private List<Infosystem> getInfosystems() {
     List<Infosystem> allInfosystems = new ArrayList<>();
     if (isNotBlank(legacyProducerUrl)) {
-      getInfosystemsWithoutOwnerRestriction(allInfosystems, legacyProducerUrl);
+      allInfosystems.addAll(getInfosystemsWithoutOwnerRestriction(legacyProducerUrl));
     }
 
     Properties producers = getProducers();
 
     for (String url : producers.stringPropertyNames()) {
       List<String> allowedOwners = asList(producers.getProperty(url).split(","));
-      getInfosystems(allInfosystems, url, allowedOwners);
+      allInfosystems.addAll(getInfosystems(url, allowedOwners));
     }
-    return allInfosystems;
+
+    return merge(allInfosystems);
   }
 
-  private void getInfosystemsWithoutOwnerRestriction(List<Infosystem> allInfosystems, String url) {
-    getInfosystems(allInfosystems, url, null);
+  private List<Infosystem> getInfosystemsWithoutOwnerRestriction(String url) {
+    return getInfosystems(url, null);
   }
 
-  private void getInfosystems(List<Infosystem> allInfosystems, String url, List<String> allowedOwners) {
+  private List<Infosystem> getInfosystems(String url, List<String> allowedOwners) {
     String data = getDataAsJsonArray(url);
 
     JSONArray infosystems = new JSONArray(data);
+    List<Infosystem> result = new ArrayList<>();
     for (int i = 0; i < infosystems.length(); i++) {
       Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
       if (allowedOwners== null || allowedOwners.contains(infosystem.getOwner())) {
-        merge(allInfosystems, infosystem);
+        result.add(infosystem);
       }
     }
+    return result;
   }
 
-  private void merge(List<Infosystem> infosystems, Infosystem infosystem) {
-    Infosystem existing = findInfosystem(infosystems, infosystem.getId());
+  private ArrayList<Infosystem> merge(List<Infosystem> infosystems) {
+    ArrayList<Infosystem> result = new ArrayList<>();
 
-    if (existing == null) {
-      infosystems.add(infosystem);
-    } else if (infosystem.getUpdated().isAfter(existing.getUpdated())) {
-      infosystems.remove(existing);
-      infosystems.add(infosystem);
-    }
-  }
-
-  private Infosystem findInfosystem(List<Infosystem> infosystems, String id) {
     for (Infosystem infosystem : infosystems) {
-      if (infosystem.getId().equals(id)) return infosystem;
+      Infosystem existing = result.stream().filter(i -> i.getId().equals(infosystem.getId())).findAny().orElse(null);
+
+      if (existing == null) {
+        result.add(infosystem);
+      } else if (infosystem.getUpdated().isAfter(existing.getUpdated())) {
+        result.remove(existing);
+        result.add(infosystem);
+      }
     }
-    return null;
+    return result;
   }
 
   private Properties getProducers() {
