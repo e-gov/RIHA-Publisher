@@ -28,7 +28,7 @@ public class HarvestServiceTest {
   @Test
   public void addApprovalData() {
     service.producers = new Properties();
-    service.producers.setProperty("riha-legacy", "data-url");
+    service.producers.setProperty("data-url", "producer");
 
     doReturn("[{\"id\":\"/owner/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
       "{\"id\":\"/owner/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
@@ -37,14 +37,14 @@ public class HarvestServiceTest {
     String infosystemsData = "[" +
       "{" +
       "\"shortname\": \"shortname1\"," +
-      "\"owner\": \"owner\"," +
+      "\"owner\": \"producer\"," +
       "\"meta\": {" +
       "\"URI\": \"/owner/shortname1\"" +
       "}" +
       "}," +
       "{" +
       "\"shortname\": \"shortname3\"," +
-      "\"owner\": \"owner\"," +
+      "\"owner\": \"producer\"," +
       "\"meta\": {" +
       "\"URI\": \"/70000740/\\u00d5ppurite register\"" +
       "}" +
@@ -59,12 +59,12 @@ public class HarvestServiceTest {
 
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    assertEquals("{\"owner\":\"owner\"," +
+    assertEquals("{\"owner\":\"producer\"," +
       "\"meta\":{\"URI\":\"/owner/shortname1\"}," +
       "\"approval\":{\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
       "\"shortname\":\"shortname1\"}", infosystems.get(0).getJson().toString());
 
-    assertEquals("{\"owner\":\"owner\"," +
+    assertEquals("{\"owner\":\"producer\"," +
       "\"meta\":{\"URI\":\"/70000740/Õppurite register\"}," +
       "\"shortname\":\"shortname3\"}", infosystems.get(1).getJson().toString());
   }
@@ -72,12 +72,12 @@ public class HarvestServiceTest {
   @Test
   public void loadDataFromMultipleProducers() {
     service.producers = new Properties();
-    service.producers.setProperty("riha-legacy", "data-url");
-    service.producers.setProperty("other-producer", "other-url");
+    service.producers.setProperty("data-url", "producer");
+    service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"meta\": {\"URI\": \"/owner/shortname1\"}}]").when(service).getData("data-url");
-    doReturn("[{\"meta\": {\"URI\": \"/owner/shortname2\"}}]").when(service).getData("other-url");
+    doReturn("[{\"owner\":\"producer\",\"meta\": {\"URI\": \"/owner/shortname1\"}}]").when(service).getData("data-url");
+    doReturn("[{\"owner\":\"other-producer\",\"meta\": {\"URI\": \"/owner/shortname2\"}}]").when(service).getData("other-url");
 
     service.harvestInfosystems();
 
@@ -85,8 +85,8 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    assertEquals("{\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString());
-    assertEquals("{\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString());
+    assertEquals("{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString());
+    assertEquals("{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString());
     verify(service).getData("data-url");
     verify(service).getData("other-url");
   }
@@ -94,14 +94,14 @@ public class HarvestServiceTest {
   @Test
   public void loadDataFromMultipleProducers_takesMostRecentInfosystemData() {
     service.producers = new Properties();
-    service.producers.setProperty("riha-legacy", "data-url");
-    service.producers.setProperty("other-producer", "other-url");
+    service.producers.setProperty("data-url", "producer");
+    service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:00:00.000001\"}}," +
-              "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:00:00.000001\"}}," +
+              "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
       .when(service).getData("data-url");
-    doReturn("[{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:01:00\"}}]")
+    doReturn("[{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:01:00\"}}]")
       .when(service).getData("other-url");
 
     service.harvestInfosystems();
@@ -111,7 +111,7 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
     assertEquals(
-      "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
       infosystems.get(0).getJson().toString());
     verify(service).getData("data-url");
     verify(service).getData("other-url");
@@ -120,11 +120,11 @@ public class HarvestServiceTest {
   @Test
   public void loadDataFromMultipleProducers_takesOnlyOneInfosystemIfTwoAreEquallyRecent() {
     service.producers = new Properties();
-    service.producers.setProperty("riha-legacy", "data-url");
+    service.producers.setProperty("data-url", "producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
-      "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
+      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
       .when(service).getData("data-url");
 
     service.harvestInfosystems();
@@ -134,7 +134,28 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
     assertEquals(
-      "{\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      infosystems.get(0).getJson().toString());
+  }
+
+  @Test
+  public void loadDataFromMultipleProducers_skipsNonListedOwners() {
+    service.producers = new Properties();
+    service.producers.setProperty("data-url", "producer,producer2");
+
+    doReturn("[]").when(service).getApprovalData();
+    doReturn("[{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
+      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+      .when(service).getData("data-url");
+
+    service.harvestInfosystems();
+
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+    verify(storageService).save(captor.capture());
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(1, infosystems.size());
+    assertEquals(
+      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
       infosystems.get(0).getJson().toString());
   }
 }

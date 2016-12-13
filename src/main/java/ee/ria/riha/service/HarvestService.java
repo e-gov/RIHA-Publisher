@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static java.util.Arrays.asList;
 import static org.apache.http.client.fluent.Request.Get;
 
 @Service
@@ -43,15 +44,21 @@ public class HarvestService {
     List<Infosystem> allInfosystems = new ArrayList<>();
     Properties producers = getProducers();
 
-    for (String owner : producers.stringPropertyNames()) {
-      String url = producers.getProperty(owner);
-      JSONArray infosystems = new JSONArray(getData(url));
-      for (int i = 0; i < infosystems.length(); i++) {
-        Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
+    for (String url : producers.stringPropertyNames()) {
+      List<String> allowedOwners = asList(producers.getProperty(url).split(","));
+      getInfosystems(allInfosystems, url, allowedOwners);
+    }
+    return allInfosystems;
+  }
+
+  private void getInfosystems(List<Infosystem> allInfosystems, String url, List<String> allowedOwners) {
+    JSONArray infosystems = new JSONArray(getData(url));
+    for (int i = 0; i < infosystems.length(); i++) {
+      Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
+      if (allowedOwners.contains(infosystem.getOwner())) {
         merge(allInfosystems, infosystem);
       }
     }
-    return allInfosystems;
   }
 
   private void merge(List<Infosystem> infosystems, Infosystem infosystem) {
@@ -124,6 +131,7 @@ public class HarvestService {
       return Get(url).execute().returnContent().asString();
     }
     catch (IOException e) {
+      //todo do not throw exception
       throw new RuntimeException(e);
     }
   }

@@ -28,4 +28,8 @@ public class Infosystem {
   public JSONObject getJson() {
     return json;
   }
+
+  public String getOwner() {
+    return json.getString("owner");
+  }
 }
