@@ -1,6 +1,7 @@
 package ee.ria.riha.service;
 
 import ee.ria.riha.models.Infosystem;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -25,9 +26,13 @@ public class HarvestServiceTest {
   @Spy @InjectMocks
   private HarvestService service = new HarvestService();
 
+  @Before
+  public void setUp() throws Exception {
+    service.producers = new Properties();
+  }
+
   @Test
   public void addApprovalData() {
-    service.producers = new Properties();
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[{\"id\":\"/owner/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
@@ -71,7 +76,6 @@ public class HarvestServiceTest {
 
   @Test
   public void loadDataFromMultipleProducers() {
-    service.producers = new Properties();
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
@@ -93,7 +97,6 @@ public class HarvestServiceTest {
 
   @Test
   public void loadDataFromMultipleProducers_takesMostRecentInfosystemData() {
-    service.producers = new Properties();
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
@@ -119,7 +122,6 @@ public class HarvestServiceTest {
 
   @Test
   public void loadDataFromMultipleProducers_takesOnlyOneInfosystemIfTwoAreEquallyRecent() {
-    service.producers = new Properties();
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[]").when(service).getApprovalData();
@@ -139,23 +141,33 @@ public class HarvestServiceTest {
   }
 
   @Test
-  public void loadDataFromMultipleProducers_skipsNonListedOwners() {
-    service.producers = new Properties();
-    service.producers.setProperty("data-url", "producer,producer2");
+  public void loadDataFromLegacyProducerAllowingAnyOwner() {
+    service.legacyProducerUrl = "legacy-data-url";
+    service.producers.setProperty("data-url", "producer,producer3");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
-      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    doReturn("[{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
+      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
       .when(service).getData("data-url");
+
+    doReturn("[{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
+      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+      .when(service).getData("legacy-data-url");
 
     service.harvestInfosystems();
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
-    assertEquals(1, infosystems.size());
+    assertEquals(3, infosystems.size());
     assertEquals(
-      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      "{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
       infosystems.get(0).getJson().toString());
+    assertEquals(
+      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      infosystems.get(1).getJson().toString());
+    assertEquals(
+      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      infosystems.get(2).getJson().toString());
   }
 }

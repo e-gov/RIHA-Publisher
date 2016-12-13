@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static java.util.Arrays.asList;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.http.client.fluent.Request.Get;
 
 @Service
@@ -24,6 +25,9 @@ public class HarvestService {
 
   @Value("${approvals.url}")
   String approvalsUrl;
+
+  @Value("${legacyProducer.url}")
+  String legacyProducerUrl;
 
   Properties producers;
 
@@ -42,6 +46,10 @@ public class HarvestService {
 
   private List<Infosystem> getInfosystems() {
     List<Infosystem> allInfosystems = new ArrayList<>();
+    if (isNotBlank(legacyProducerUrl)) {
+      getInfosystemsWithoutOwnerRestriction(allInfosystems, legacyProducerUrl);
+    }
+
     Properties producers = getProducers();
 
     for (String url : producers.stringPropertyNames()) {
@@ -51,11 +59,15 @@ public class HarvestService {
     return allInfosystems;
   }
 
+  private void getInfosystemsWithoutOwnerRestriction(List<Infosystem> allInfosystems, String url) {
+    getInfosystems(allInfosystems, url, null);
+  }
+
   private void getInfosystems(List<Infosystem> allInfosystems, String url, List<String> allowedOwners) {
     JSONArray infosystems = new JSONArray(getData(url));
     for (int i = 0; i < infosystems.length(); i++) {
       Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
-      if (allowedOwners.contains(infosystem.getOwner())) {
+      if (allowedOwners == null || allowedOwners.contains(infosystem.getOwner())) {
         merge(allInfosystems, infosystem);
       }
     }
