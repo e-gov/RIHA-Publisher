@@ -3,6 +3,8 @@ package ee.ria.riha.service;
 import ee.ria.riha.models.Infosystem;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,8 @@ import static org.apache.http.client.fluent.Request.Get;
 @Service
 public class HarvestService {
 
+  private Logger logger = LoggerFactory.getLogger(HarvestService.class);
+
   @Value("${approvals.url}")
   String approvalsUrl;
 
@@ -34,8 +38,10 @@ public class HarvestService {
 
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
+    logger.info("Started");
     List<Infosystem> infosystems = addApprovals(getInfosystems());
     infosystemStorageService.save(infosystems);
+    logger.info("Finished");
   }
 
   private List<Infosystem> getInfosystems() {
@@ -58,7 +64,9 @@ public class HarvestService {
   }
 
   private void getInfosystems(List<Infosystem> allInfosystems, String url, List<String> allowedOwners) {
-    JSONArray infosystems = new JSONArray(getData(url));
+    String data = getDataAsJsonArray(url);
+
+    JSONArray infosystems = new JSONArray(data);
     for (int i = 0; i < infosystems.length(); i++) {
       Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
       if (allowedOwners== null || allowedOwners.contains(infosystem.getOwner())) {
@@ -102,6 +110,7 @@ public class HarvestService {
       producers.load(inputStream);
     }
     catch (IOException e) {
+      logger.error("Could not read producers db " + path, e);
       throw new RuntimeException(e);
     }
   }
@@ -132,17 +141,17 @@ public class HarvestService {
     }
   }
 
-  String getData(String url) {
+  String getDataAsJsonArray(String url) {
     try {
       return Get(url).execute().returnContent().asString();
     }
     catch (IOException e) {
-      //todo do not throw exception
-      throw new RuntimeException(e);
+      logger.warn("Could not fetch data from: " + url, e);
+      return "[]";
     }
   }
 
   String getApprovalData() {
-    return getData(approvalsUrl);
+    return getDataAsJsonArray(approvalsUrl);
   }
 }

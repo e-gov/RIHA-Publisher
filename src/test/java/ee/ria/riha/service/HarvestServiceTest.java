@@ -55,7 +55,7 @@ public class HarvestServiceTest {
       "}" +
       "}" +
       "]";
-    doReturn(infosystemsData).when(service).getData("data-url");
+    doReturn(infosystemsData).when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
 
@@ -80,8 +80,8 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer\",\"meta\": {\"URI\": \"/owner/shortname1\"}}]").when(service).getData("data-url");
-    doReturn("[{\"owner\":\"other-producer\",\"meta\": {\"URI\": \"/owner/shortname2\"}}]").when(service).getData("other-url");
+    doReturn("[{\"owner\":\"producer\",\"meta\": {\"URI\": \"/owner/shortname1\"}}]").when(service).getDataAsJsonArray("data-url");
+    doReturn("[{\"owner\":\"other-producer\",\"meta\": {\"URI\": \"/owner/shortname2\"}}]").when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
 
@@ -91,8 +91,8 @@ public class HarvestServiceTest {
     assertEquals(2, infosystems.size());
     assertEquals("{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString());
     assertEquals("{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString());
-    verify(service).getData("data-url");
-    verify(service).getData("other-url");
+    verify(service).getDataAsJsonArray("data-url");
+    verify(service).getDataAsJsonArray("other-url");
   }
 
   @Test
@@ -103,9 +103,9 @@ public class HarvestServiceTest {
     doReturn("[]").when(service).getApprovalData();
     doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:00:00.000001\"}}," +
               "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
-      .when(service).getData("data-url");
+      .when(service).getDataAsJsonArray("data-url");
     doReturn("[{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:01:00\"}}]")
-      .when(service).getData("other-url");
+      .when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
 
@@ -116,8 +116,8 @@ public class HarvestServiceTest {
     assertEquals(
       "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
       infosystems.get(0).getJson().toString());
-    verify(service).getData("data-url");
-    verify(service).getData("other-url");
+    verify(service).getDataAsJsonArray("data-url");
+    verify(service).getDataAsJsonArray("other-url");
   }
 
   @Test
@@ -127,7 +127,7 @@ public class HarvestServiceTest {
     doReturn("[]").when(service).getApprovalData();
     doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
       "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
-      .when(service).getData("data-url");
+      .when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
 
@@ -148,11 +148,11 @@ public class HarvestServiceTest {
     doReturn("[]").when(service).getApprovalData();
     doReturn("[{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
       "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
-      .when(service).getData("data-url");
+      .when(service).getDataAsJsonArray("data-url");
 
     doReturn("[{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
       "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
-      .when(service).getData("legacy-data-url");
+      .when(service).getDataAsJsonArray("legacy-data-url");
 
     service.harvestInfosystems();
 
@@ -169,5 +169,10 @@ public class HarvestServiceTest {
     assertEquals(
       "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
       infosystems.get(2).getJson().toString());
+  }
+
+  @Test
+  public void getDataAsJsonArray_returnsEmptyJsonArrayInCaseOfError() {
+    assertEquals("[]", service.getDataAsJsonArray("url"));
   }
 }
