@@ -78,8 +78,8 @@ public class HarvestService {
     return result;
   }
 
-  private ArrayList<Infosystem> merge(List<Infosystem> infosystems) {
-    ArrayList<Infosystem> result = new ArrayList<>();
+  private List<Infosystem> merge(List<Infosystem> infosystems) {
+    List<Infosystem> result = new ArrayList<>();
 
     for (Infosystem infosystem : infosystems) {
       Infosystem existing = result.stream().filter(i -> i.getId().equals(infosystem.getId())).findAny().orElse(null);
