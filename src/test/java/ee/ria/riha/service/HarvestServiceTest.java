@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.util.List;
 import java.util.Properties;
@@ -64,14 +65,14 @@ public class HarvestServiceTest {
 
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    assertEquals("{\"owner\":\"producer\"," +
+    JSONAssert.assertEquals("{\"owner\":\"producer\"," +
       "\"meta\":{\"URI\":\"/owner/shortname1\"}," +
       "\"approval\":{\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
-      "\"shortname\":\"shortname1\"}", infosystems.get(0).getJson().toString());
+      "\"shortname\":\"shortname1\"}", infosystems.get(0).getJson().toString(), true);
 
-    assertEquals("{\"owner\":\"producer\"," +
+    JSONAssert.assertEquals("{\"owner\":\"producer\"," +
       "\"meta\":{\"URI\":\"/70000740/Õppurite register\"}," +
-      "\"shortname\":\"shortname3\"}", infosystems.get(1).getJson().toString());
+      "\"shortname\":\"shortname3\"}", infosystems.get(1).getJson().toString(), true);
   }
 
   @Test
@@ -89,8 +90,8 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    assertEquals("{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString());
-    assertEquals("{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString());
+    JSONAssert.assertEquals("{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals("{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString(), true);
     verify(service).getDataAsJsonArray("data-url");
     verify(service).getDataAsJsonArray("other-url");
   }
@@ -113,9 +114,9 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
-    assertEquals(
+    JSONAssert.assertEquals(
       "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(0).getJson().toString());
+      infosystems.get(0).getJson().toString(), true);
     verify(service).getDataAsJsonArray("data-url");
     verify(service).getDataAsJsonArray("other-url");
   }
@@ -135,9 +136,9 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
-    assertEquals(
+    JSONAssert.assertEquals(
       "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(0).getJson().toString());
+      infosystems.get(0).getJson().toString(), true);
   }
 
   @Test
@@ -160,19 +161,19 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(3, infosystems.size());
-    assertEquals(
+    JSONAssert.assertEquals(
       "{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(0).getJson().toString());
-    assertEquals(
+      infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals(
       "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(1).getJson().toString());
-    assertEquals(
+      infosystems.get(1).getJson().toString(), true);
+    JSONAssert.assertEquals(
       "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(2).getJson().toString());
+      infosystems.get(2).getJson().toString(), true);
   }
 
   @Test
   public void getDataAsJsonArray_returnsEmptyJsonArrayInCaseOfError() {
-    assertEquals("[]", service.getDataAsJsonArray("url"));
+    JSONAssert.assertEquals("[]", service.getDataAsJsonArray("url"), true);
   }
 }
