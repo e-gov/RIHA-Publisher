@@ -17,8 +17,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
@@ -35,7 +34,7 @@ public class HarvestServiceTest {
   }
 
   @Test
-  public void addApprovalData() {
+  public void addApprovalData() throws Exception {
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[{\"uri\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
@@ -62,7 +61,7 @@ public class HarvestServiceTest {
   }
 
   @Test
-  public void loadDataFromMultipleProducers() {
+  public void loadDataFromMultipleProducers() throws Exception {
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
@@ -83,7 +82,7 @@ public class HarvestServiceTest {
   }
 
   @Test
-  public void loadDataFromMultipleProducers_takesMostRecentInfosystemData() {
+  public void loadDataFromMultipleProducers_takesMostRecentInfosystemData() throws Exception {
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
@@ -119,12 +118,12 @@ public class HarvestServiceTest {
       "}}";
   }
 
-  private String json(final String ownerCode, final String uri, final String statusTimestamp) {
+  private String json(String ownerCode, String uri, String statusTimestamp) {
     return json(ownerCode, uri, statusTimestamp, null, null);
   }
 
   @Test
-  public void loadDataFromMultipleProducers_takesOnlyOneInfosystemIfTwoAreEquallyRecent() {
+  public void loadDataFromMultipleProducers_takesOnlyOneInfosystemIfTwoAreEquallyRecent() throws Exception {
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[]").when(service).getApprovalData();
@@ -143,7 +142,7 @@ public class HarvestServiceTest {
   }
 
   @Test
-  public void loadDataFromLegacyProducerAllowingAnyOwner() {
+  public void loadDataFromLegacyProducerAllowingAnyOwner() throws Exception {
     service.legacyProducerUrl = "legacy-data-url";
     service.producers.setProperty("data-url", "producer,producer3");
 
@@ -172,8 +171,42 @@ public class HarvestServiceTest {
       infosystems.get(2).getJson().toString(), true);
   }
 
+  @Test(expected = HarvestService.UnreachableResourceException.class)
+  public void getDataAsJsonArray_returnsEmptyJsonArrayInCaseOfError() throws HarvestService.UnreachableResourceException {
+    service.getDataAsJsonArray("invalid-url");
+  }
+
   @Test
-  public void getDataAsJsonArray_returnsEmptyJsonArrayInCaseOfError() {
-    JSONAssert.assertEquals("[]", service.getDataAsJsonArray("url"), true);
+  public void doesNotHarvestInfosystemsIfApprovalsRequestThrowsException() throws Exception {
+    doThrow(mock(HarvestService.UnreachableResourceException.class)).when(service).getApprovalData();
+
+    service.harvestInfosystems();
+
+    verify(storageService, never()).save(any());
+  }
+
+  @Test
+  public void skipsProducerIfUrlIsUnreachable() throws Exception {
+    service.producers.setProperty("data-url-ok1", "producer1");
+    service.producers.setProperty("data-url-fail", "producer2");
+    service.producers.setProperty("data-url-ok2", "producer3");
+
+    doReturn("[]").when(service).getApprovalData();
+    doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"))).when(service).getDataAsJsonArray("data-url-ok1");
+    doThrow(mock(HarvestService.UnreachableResourceException.class)).when(service).getDataAsJsonArray("data-url-fail");
+    doReturn(array(json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00"))).when(service).getDataAsJsonArray("data-url-ok2");
+
+    service.harvestInfosystems();
+
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+    verify(storageService).save(captor.capture());
+    List<Infosystem> infosystems = captor.getValue();
+    assertEquals(2, infosystems.size());
+    JSONAssert.assertEquals(
+      json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"),
+      infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals(
+      json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00"),
+      infosystems.get(1).getJson().toString(), true);
   }
 }

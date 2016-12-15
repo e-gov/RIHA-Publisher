@@ -39,7 +39,14 @@ public class HarvestService {
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
     logger.info("Started");
-    List<Infosystem> infosystems = addApprovals(getInfosystems());
+    Map<String, JSONObject> approvals;
+    try {
+      approvals = getApprovals();
+    } catch (UnreachableResourceException e) {
+      logger.info("Skipping harvesting - could not get approval information!", e);
+      return;
+    }
+    List<Infosystem> infosystems = addApprovals(getInfosystems(), approvals);
     infosystemStorageService.save(infosystems);
     logger.info("Finished");
   }
@@ -65,7 +72,14 @@ public class HarvestService {
   }
 
   private List<Infosystem> getInfosystems(String url, List<String> allowedOwners) {
-    String data = getDataAsJsonArray(url);
+    String data;
+    try {
+      data = getDataAsJsonArray(url);
+    }
+    catch (UnreachableResourceException e) {
+      logger.error("Skipping producer - failed to get data from: " + url);
+      return Collections.emptyList();
+    }
 
     JSONArray infosystems = new JSONArray(data);
     List<Infosystem> result = new ArrayList<>();
@@ -116,12 +130,12 @@ public class HarvestService {
     }
   }
 
-  private List<Infosystem> addApprovals(List<Infosystem> infosystems) {
-    merge(infosystems, getApprovals());
+  private List<Infosystem> addApprovals(List<Infosystem> infosystems, Map<String, JSONObject> approvals) {
+    merge(infosystems, approvals);
     return infosystems;
   }
 
-  private Map<String, JSONObject> getApprovals() {
+  private Map<String, JSONObject> getApprovals() throws UnreachableResourceException {
     JSONArray approvals = new JSONArray(getApprovalData());
     Map<String, JSONObject> approvalsById = new HashMap<>();
     for (int i = 0; i < approvals.length(); i++) {
@@ -142,17 +156,22 @@ public class HarvestService {
     }
   }
 
-  String getDataAsJsonArray(String url) {
+  String getDataAsJsonArray(String url) throws UnreachableResourceException {
     try {
       return Get(url).execute().returnContent().asString();
     }
-    catch (IOException e) {
-      logger.warn("Could not fetch data from: " + url, e);
-      return "[]";
+    catch (Exception e) {
+      throw new UnreachableResourceException(e);
     }
   }
 
-  String getApprovalData() {
+  String getApprovalData() throws UnreachableResourceException {
     return getDataAsJsonArray(approvalsUrl);
+  }
+
+  static class UnreachableResourceException extends Exception {
+    UnreachableResourceException(Exception e) {
+      super(e);
+    }
   }
 }
