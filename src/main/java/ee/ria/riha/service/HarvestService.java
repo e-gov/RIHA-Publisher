@@ -126,9 +126,9 @@ public class HarvestService {
     Map<String, JSONObject> approvalsById = new HashMap<>();
     for (int i = 0; i < approvals.length(); i++) {
       JSONObject jsonObject = approvals.getJSONObject(i);
-      String id = jsonObject.getString("id");
-      jsonObject.remove("id");
-      approvalsById.put(id, jsonObject);
+      String uri = jsonObject.getString("uri");
+      jsonObject.remove("uri");
+      approvalsById.put(uri, jsonObject);
     }
     return approvalsById;
   }

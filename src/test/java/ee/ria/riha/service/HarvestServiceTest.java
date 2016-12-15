@@ -38,8 +38,8 @@ public class HarvestServiceTest {
   public void addApprovalData() {
     service.producers.setProperty("data-url", "producer");
 
-    doReturn("[{\"id\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
-      "{\"id\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
+    doReturn("[{\"uri\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
+      "{\"uri\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
       .when(service).getApprovalData();
 
     String infosystemsData = array(json("producer", "http://base.url/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
