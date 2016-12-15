@@ -1,6 +1,8 @@
 # Database of RIHA API endpoints containing infosystem descriptions to be harvested
 #
 # Key: producer URL - that contains RIHA API json
+# NB! The following characters must be escaped with backslash(\):   # ! = :
+#
 # Value: allowed owner number whitelist, all other infosystems will be ignored
 #
 # https\://endpoint.url/systems.json=70000562,70000740
