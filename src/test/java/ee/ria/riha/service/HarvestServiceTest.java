@@ -13,7 +13,9 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
+import static java.util.Arrays.stream;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -40,22 +42,7 @@ public class HarvestServiceTest {
       "{\"id\":\"/owner/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
       .when(service).getApprovalData();
 
-    String infosystemsData = "[" +
-      "{" +
-      "\"shortname\": \"shortname1\"," +
-      "\"owner\": \"producer\"," +
-      "\"meta\": {" +
-      "\"URI\": \"/owner/shortname1\"" +
-      "}" +
-      "}," +
-      "{" +
-      "\"shortname\": \"shortname3\"," +
-      "\"owner\": \"producer\"," +
-      "\"meta\": {" +
-      "\"URI\": \"/70000740/\\u00d5ppurite register\"" +
-      "}" +
-      "}" +
-      "]";
+    String infosystemsData = array(json("producer", "/owner/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
     doReturn(infosystemsData).when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
@@ -65,14 +52,13 @@ public class HarvestServiceTest {
 
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    JSONAssert.assertEquals("{\"owner\":\"producer\"," +
-      "\"meta\":{\"URI\":\"/owner/shortname1\"}," +
-      "\"approval\":{\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
-      "\"shortname\":\"shortname1\"}", infosystems.get(0).getJson().toString(), true);
 
-    JSONAssert.assertEquals("{\"owner\":\"producer\"," +
-      "\"meta\":{\"URI\":\"/70000740/Õppurite register\"}," +
-      "\"shortname\":\"shortname3\"}", infosystems.get(1).getJson().toString(), true);
+    JSONAssert.assertEquals(
+      json("producer", "/owner/shortname1", "", "MITTE KOOSKÕLASTATUD", "2016-01-01T10:00:00"),
+      infosystems.get(0).getJson().toString(), true);
+
+    JSONAssert.assertEquals(json("producer", "/70000740/\\u00d5ppurite register", ""),
+      infosystems.get(1).getJson().toString(), true);
   }
 
   @Test
@@ -81,8 +67,8 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer\",\"meta\": {\"URI\": \"/owner/shortname1\"}}]").when(service).getDataAsJsonArray("data-url");
-    doReturn("[{\"owner\":\"other-producer\",\"meta\": {\"URI\": \"/owner/shortname2\"}}]").when(service).getDataAsJsonArray("other-url");
+    doReturn(array(json("producer","/owner/shortname1", ""))).when(service).getDataAsJsonArray("data-url");
+    doReturn(array(json("other-producer","/owner/shortname2", ""))).when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
 
@@ -90,8 +76,8 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    JSONAssert.assertEquals("{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"}}", infosystems.get(0).getJson().toString(), true);
-    JSONAssert.assertEquals("{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname2\"}}", infosystems.get(1).getJson().toString(), true);
+    JSONAssert.assertEquals(json("producer","/owner/shortname1", ""), infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals(json("other-producer","/owner/shortname2", ""), infosystems.get(1).getJson().toString(), true);
     verify(service).getDataAsJsonArray("data-url");
     verify(service).getDataAsJsonArray("other-url");
   }
@@ -102,10 +88,10 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:00:00.000001\"}}," +
-              "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    String expectedResult = json("producer", "/owner/shortname1", "2016-09-05T00:36:26.255215");
+    doReturn(array(json("producer", "/owner/shortname1", "2015-09-05T00:36:26.255215"), expectedResult))
       .when(service).getDataAsJsonArray("data-url");
-    doReturn("[{\"owner\":\"other-producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2013-11-08T00:01:00\"}}]")
+    doReturn(array(json("other-producer","/owner/shortname1","2011-09-05T00:36:26.255215")))
       .when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
@@ -114,11 +100,27 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
-    JSONAssert.assertEquals(
-      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
-      infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals(expectedResult, infosystems.get(0).getJson().toString(), true);
     verify(service).getDataAsJsonArray("data-url");
     verify(service).getDataAsJsonArray("other-url");
+  }
+
+  private String array(String... objects) {
+    return "[" + stream(objects).collect(Collectors.joining(",")) + "]";
+  }
+
+  private String json(final String ownerCode, final String uri, final String statusTimestamp, final String approvalStatus, final String approvalTimestamp) {
+    String approvalJson = approvalStatus == null && approvalTimestamp == null ? "" :
+      (",\"approval_status\": {\"status\":\""+approvalStatus+"\",\"timestamp\": \"" + approvalTimestamp + "\"}");
+    return "{\"owner\":{\"code\":\"" + ownerCode + "\"},\"uri\":\"" + uri + "\"," +
+      "\"meta\": {" +
+        "\"system_status\": {\"timestamp\": \"" + statusTimestamp + "\"}" +
+        approvalJson +
+      "}}";
+  }
+
+  private String json(final String ownerCode, final String uri, final String statusTimestamp) {
+    return json(ownerCode, uri, statusTimestamp, null, null);
   }
 
   @Test
@@ -126,8 +128,7 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
-      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    doReturn(array(json("producer", "/owner/shortname1", "2016-01-01T00:00:00"), json("producer", "/owner/shortname1", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
@@ -137,7 +138,7 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
     JSONAssert.assertEquals(
-      "{\"owner\":\"producer\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      json("producer", "/owner/shortname1", "2016-01-01T00:00:00"),
       infosystems.get(0).getJson().toString(), true);
   }
 
@@ -147,12 +148,11 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer,producer3");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn("[{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
-      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+
+    doReturn(array(json("producer2", "/owner/shortname2", "2016-01-01T00:00:00"), json("producer3", "/owner/shortname3", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("data-url");
 
-    doReturn("[{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}," +
-      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}]")
+    doReturn(array(json("producer1", "/owner/shortname1", "2016-01-01T00:00:00"), json("producer2", "/owner/shortname2", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("legacy-data-url");
 
     service.harvestInfosystems();
@@ -162,13 +162,13 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(3, infosystems.size());
     JSONAssert.assertEquals(
-      "{\"owner\":\"producer1\",\"meta\":{\"URI\":\"/owner/shortname1\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      json("producer1", "/owner/shortname1", "2016-01-01T00:00:00"),
       infosystems.get(0).getJson().toString(), true);
     JSONAssert.assertEquals(
-      "{\"owner\":\"producer2\",\"meta\":{\"URI\":\"/owner/shortname2\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      json("producer2", "/owner/shortname2", "2016-01-01T00:00:00"),
       infosystems.get(1).getJson().toString(), true);
     JSONAssert.assertEquals(
-      "{\"owner\":\"producer3\",\"meta\":{\"URI\":\"/owner/shortname3\"},\"status\":{\"timestamp\":\"2016-01-01T00:00:00\"}}",
+      json("producer3", "/owner/shortname3", "2016-01-01T00:00:00"),
       infosystems.get(2).getJson().toString(), true);
   }
 

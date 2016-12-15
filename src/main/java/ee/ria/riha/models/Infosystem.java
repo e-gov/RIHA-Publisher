@@ -14,15 +14,15 @@ public class Infosystem {
   }
 
   public String getId() {
-    return json.getJSONObject("meta").getString("URI");
+    return json.getString("uri");
   }
 
   public LocalDateTime getUpdated() {
-    return LocalDateTime.parse(json.getJSONObject("status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    return LocalDateTime.parse(json.getJSONObject("meta").getJSONObject("system_status").getString("timestamp"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
   }
 
   public void setApproval(JSONObject approval){
-    json.put("approval", approval);
+    json.getJSONObject("meta").put("approval_status", approval);
   }
 
   public JSONObject getJson() {
@@ -30,6 +30,6 @@ public class Infosystem {
   }
 
   public String getOwner() {
-    return json.getString("owner");
+    return json.getJSONObject("owner").getString("code");
   }
 }
