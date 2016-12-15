@@ -38,11 +38,11 @@ public class HarvestServiceTest {
   public void addApprovalData() {
     service.producers.setProperty("data-url", "producer");
 
-    doReturn("[{\"id\":\"/owner/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
-      "{\"id\":\"/owner/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
+    doReturn("[{\"id\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
+      "{\"id\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
       .when(service).getApprovalData();
 
-    String infosystemsData = array(json("producer", "/owner/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
+    String infosystemsData = array(json("producer", "http://base.url/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
     doReturn(infosystemsData).when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
@@ -54,7 +54,7 @@ public class HarvestServiceTest {
     assertEquals(2, infosystems.size());
 
     JSONAssert.assertEquals(
-      json("producer", "/owner/shortname1", "", "MITTE KOOSKÕLASTATUD", "2016-01-01T10:00:00"),
+      json("producer", "http://base.url/shortname1", "", "MITTE KOOSKÕLASTATUD", "2016-01-01T10:00:00"),
       infosystems.get(0).getJson().toString(), true);
 
     JSONAssert.assertEquals(json("producer", "/70000740/\\u00d5ppurite register", ""),
@@ -67,8 +67,8 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn(array(json("producer","/owner/shortname1", ""))).when(service).getDataAsJsonArray("data-url");
-    doReturn(array(json("other-producer","/owner/shortname2", ""))).when(service).getDataAsJsonArray("other-url");
+    doReturn(array(json("producer","http://base.url/shortname1", ""))).when(service).getDataAsJsonArray("data-url");
+    doReturn(array(json("other-producer","http://base.url/shortname2", ""))).when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
 
@@ -76,8 +76,8 @@ public class HarvestServiceTest {
     verify(storageService).save(captor.capture());
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(2, infosystems.size());
-    JSONAssert.assertEquals(json("producer","/owner/shortname1", ""), infosystems.get(0).getJson().toString(), true);
-    JSONAssert.assertEquals(json("other-producer","/owner/shortname2", ""), infosystems.get(1).getJson().toString(), true);
+    JSONAssert.assertEquals(json("producer","http://base.url/shortname1", ""), infosystems.get(0).getJson().toString(), true);
+    JSONAssert.assertEquals(json("other-producer","http://base.url/shortname2", ""), infosystems.get(1).getJson().toString(), true);
     verify(service).getDataAsJsonArray("data-url");
     verify(service).getDataAsJsonArray("other-url");
   }
@@ -88,10 +88,10 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn("[]").when(service).getApprovalData();
-    String expectedResult = json("producer", "/owner/shortname1", "2016-09-05T00:36:26.255215");
-    doReturn(array(json("producer", "/owner/shortname1", "2015-09-05T00:36:26.255215"), expectedResult))
+    String expectedResult = json("producer", "http://base.url/shortname1", "2016-09-05T00:36:26.255215");
+    doReturn(array(json("producer", "http://base.url/shortname1", "2015-09-05T00:36:26.255215"), expectedResult))
       .when(service).getDataAsJsonArray("data-url");
-    doReturn(array(json("other-producer","/owner/shortname1","2011-09-05T00:36:26.255215")))
+    doReturn(array(json("other-producer","http://base.url/shortname1","2011-09-05T00:36:26.255215")))
       .when(service).getDataAsJsonArray("other-url");
 
     service.harvestInfosystems();
@@ -128,7 +128,7 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
 
     doReturn("[]").when(service).getApprovalData();
-    doReturn(array(json("producer", "/owner/shortname1", "2016-01-01T00:00:00"), json("producer", "/owner/shortname1", "2016-01-01T00:00:00")))
+    doReturn(array(json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("data-url");
 
     service.harvestInfosystems();
@@ -138,7 +138,7 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
     JSONAssert.assertEquals(
-      json("producer", "/owner/shortname1", "2016-01-01T00:00:00"),
+      json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00"),
       infosystems.get(0).getJson().toString(), true);
   }
 
@@ -149,10 +149,10 @@ public class HarvestServiceTest {
 
     doReturn("[]").when(service).getApprovalData();
 
-    doReturn(array(json("producer2", "/owner/shortname2", "2016-01-01T00:00:00"), json("producer3", "/owner/shortname3", "2016-01-01T00:00:00")))
+    doReturn(array(json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00"), json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("data-url");
 
-    doReturn(array(json("producer1", "/owner/shortname1", "2016-01-01T00:00:00"), json("producer2", "/owner/shortname2", "2016-01-01T00:00:00")))
+    doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00")))
       .when(service).getDataAsJsonArray("legacy-data-url");
 
     service.harvestInfosystems();
@@ -162,13 +162,13 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(3, infosystems.size());
     JSONAssert.assertEquals(
-      json("producer1", "/owner/shortname1", "2016-01-01T00:00:00"),
+      json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"),
       infosystems.get(0).getJson().toString(), true);
     JSONAssert.assertEquals(
-      json("producer2", "/owner/shortname2", "2016-01-01T00:00:00"),
+      json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00"),
       infosystems.get(1).getJson().toString(), true);
     JSONAssert.assertEquals(
-      json("producer3", "/owner/shortname3", "2016-01-01T00:00:00"),
+      json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00"),
       infosystems.get(2).getJson().toString(), true);
   }
 
