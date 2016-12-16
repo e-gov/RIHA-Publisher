@@ -44,6 +44,7 @@ public class HarvestServiceTest {
   public void addApprovalData() throws Exception {
     service.producers.setProperty("data-url", "producer");
 
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
     doReturn(new JSONArray("[{\"uri\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
       "{\"uri\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]"))
@@ -93,6 +94,7 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
     doReturn(new JSONArray("[]")).when(service).getApprovalData();
     doReturn(array(json("producer","http://base.url/shortname1", ""))).when(service).getData("data-url");
@@ -115,6 +117,7 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
     service.producers.setProperty("other-url", "other-producer");
 
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
     doReturn(new JSONArray("[]")).when(service).getApprovalData();
     String expectedResult = json("producer", "http://base.url/shortname1", "2016-09-05T00:36:26.255215");
@@ -138,6 +141,7 @@ public class HarvestServiceTest {
   public void loadDataFromMultipleProducers_takesOnlyOneInfosystemIfTwoAreEquallyRecent() throws Exception {
     service.producers.setProperty("data-url", "producer");
 
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
     doReturn(new JSONArray("[]")).when(service).getApprovalData();
     doReturn(array(json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00")))
@@ -158,13 +162,12 @@ public class HarvestServiceTest {
   public void loadDataFromLegacyProducerAllowingAnyOwner() throws Exception {
     service.legacyProducerUrl = "legacy-data-url";
     service.producers.setProperty("data-url", "producer,producer3");
+
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
-
     doReturn(new JSONArray("[]")).when(service).getApprovalData();
-
     doReturn(array(json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00"), json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00")))
       .when(service).getData("data-url");
-
     doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00")))
       .when(service).getData("legacy-data-url");
 
@@ -205,6 +208,7 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url-fail", "producer2");
     service.producers.setProperty("data-url-ok2", "producer3");
 
+    doNothing().when(service).initProducers();
     doReturn(true).when(service).validateInfosystem(anyString());
     doReturn(new JSONArray("[]")).when(service).getApprovalData();
     doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"))).when(service).getData("data-url-ok1");

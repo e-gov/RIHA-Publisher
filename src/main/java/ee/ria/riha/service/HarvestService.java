@@ -61,7 +61,7 @@ public class HarvestService {
       allInfosystems.addAll(getInfosystemsWithoutOwnerRestriction(legacyProducerUrl));
     }
 
-    Properties producers = getProducers();
+    initProducers();
 
     for (String url : producers.stringPropertyNames()) {
       List<String> allowedOwners = asList(producers.getProperty(url).split(","));
@@ -123,20 +123,12 @@ public class HarvestService {
     return result;
   }
 
-  private Properties getProducers() {
-    if (producers == null) {
-      initProducers();
-    }
-    return producers;
-  }
-
-  private void initProducers() {
+  void initProducers() {
     Path path = Paths.get("producers.db");
-
-    producers = new Properties();
     if (!path.toFile().exists()) return;
 
     try (InputStream inputStream = Files.newInputStream(path)) {
+      producers = new Properties();
       producers.load(inputStream);
     }
     catch (IOException e) {
