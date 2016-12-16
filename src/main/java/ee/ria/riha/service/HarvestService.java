@@ -76,16 +76,15 @@ public class HarvestService {
   }
 
   private List<Infosystem> getInfosystems(String url, List<String> allowedOwners) {
-    String data;
+    JSONArray infosystems;
     try {
-      data = getDataAsJsonArray(url);
+      infosystems = getData(url);
     }
     catch (UnreachableResourceException e) {
       logger.error("Skipping producer - failed to get data from: " + url);
       return Collections.emptyList();
     }
 
-    JSONArray infosystems = new JSONArray(data);
     List<Infosystem> result = new ArrayList<>();
     for (int i = 0; i < infosystems.length(); i++) {
       JSONObject infosystemJson = infosystems.getJSONObject(i);
@@ -149,7 +148,8 @@ public class HarvestService {
   }
 
   private Map<String, JSONObject> getApprovals() throws UnreachableResourceException {
-    JSONArray approvals = new JSONArray(getApprovalData());
+    JSONArray approvals = getApprovalData();
+
     Map<String, JSONObject> approvalsById = new HashMap<>();
     for (int i = 0; i < approvals.length(); i++) {
       JSONObject jsonObject = approvals.getJSONObject(i);
@@ -169,17 +169,17 @@ public class HarvestService {
     }
   }
 
-  String getDataAsJsonArray(String url) throws UnreachableResourceException {
+  JSONArray getData(String url) throws UnreachableResourceException {
     try {
-      return Get(url).execute().returnContent().asString();
+      return new JSONArray(Get(url).execute().returnContent().asString());
     }
     catch (Exception e) {
       throw new UnreachableResourceException(e);
     }
   }
 
-  String getApprovalData() throws UnreachableResourceException {
-    return getDataAsJsonArray(approvalsUrl);
+  JSONArray getApprovalData() throws UnreachableResourceException {
+    return getData(approvalsUrl);
   }
 
   static class UnreachableResourceException extends Exception {

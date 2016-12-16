@@ -6,6 +6,7 @@ import ee.ria.riha.models.InfosystemJson.ApprovalStatus;
 import ee.ria.riha.models.InfosystemJson.Meta;
 import ee.ria.riha.models.InfosystemJson.Owner;
 import ee.ria.riha.models.InfosystemJson.SystemStatus;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,12 +45,12 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
 
     doReturn(true).when(service).validateInfosystem(anyString());
-    doReturn("[{\"uri\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
-      "{\"uri\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]")
+    doReturn(new JSONArray("[{\"uri\":\"http://base.url/shortname1\",\"timestamp\":\"2016-01-01T10:00:00\",\"status\":\"MITTE KOOSKÕLASTATUD\"}," +
+      "{\"uri\":\"http://base.url/shortname2\",\"timestamp\":\"2015-10-10T01:10:10\",\"status\":\"KOOSKÕLASTATUD\"}]"))
       .when(service).getApprovalData();
 
-    String infosystemsData = array(json("producer", "http://base.url/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
-    doReturn(infosystemsData).when(service).getDataAsJsonArray("data-url");
+    JSONArray infosystemsData = array(json("producer", "http://base.url/shortname1", ""), json("producer", "/70000740/\\u00d5ppurite register", ""));
+    doReturn(infosystemsData).when(service).getData("data-url");
 
     service.harvestInfosystems();
 
@@ -93,9 +94,9 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn(true).when(service).validateInfosystem(anyString());
-    doReturn("[]").when(service).getApprovalData();
-    doReturn(array(json("producer","http://base.url/shortname1", ""))).when(service).getDataAsJsonArray("data-url");
-    doReturn(array(json("other-producer","http://base.url/shortname2", ""))).when(service).getDataAsJsonArray("other-url");
+    doReturn(new JSONArray("[]")).when(service).getApprovalData();
+    doReturn(array(json("producer","http://base.url/shortname1", ""))).when(service).getData("data-url");
+    doReturn(array(json("other-producer","http://base.url/shortname2", ""))).when(service).getData("other-url");
 
     service.harvestInfosystems();
 
@@ -105,8 +106,8 @@ public class HarvestServiceTest {
     assertEquals(2, infosystems.size());
     JSONAssert.assertEquals(json("producer","http://base.url/shortname1", ""), infosystems.get(0).getJson().toString(), true);
     JSONAssert.assertEquals(json("other-producer","http://base.url/shortname2", ""), infosystems.get(1).getJson().toString(), true);
-    verify(service).getDataAsJsonArray("data-url");
-    verify(service).getDataAsJsonArray("other-url");
+    verify(service).getData("data-url");
+    verify(service).getData("other-url");
   }
 
   @Test
@@ -115,12 +116,12 @@ public class HarvestServiceTest {
     service.producers.setProperty("other-url", "other-producer");
 
     doReturn(true).when(service).validateInfosystem(anyString());
-    doReturn("[]").when(service).getApprovalData();
+    doReturn(new JSONArray("[]")).when(service).getApprovalData();
     String expectedResult = json("producer", "http://base.url/shortname1", "2016-09-05T00:36:26.255215");
     doReturn(array(json("producer", "http://base.url/shortname1", "2015-09-05T00:36:26.255215"), expectedResult))
-      .when(service).getDataAsJsonArray("data-url");
+      .when(service).getData("data-url");
     doReturn(array(json("other-producer","http://base.url/shortname1","2011-09-05T00:36:26.255215")))
-      .when(service).getDataAsJsonArray("other-url");
+      .when(service).getData("other-url");
 
     service.harvestInfosystems();
 
@@ -129,8 +130,8 @@ public class HarvestServiceTest {
     List<Infosystem> infosystems = captor.getValue();
     assertEquals(1, infosystems.size());
     JSONAssert.assertEquals(expectedResult, infosystems.get(0).getJson().toString(), true);
-    verify(service).getDataAsJsonArray("data-url");
-    verify(service).getDataAsJsonArray("other-url");
+    verify(service).getData("data-url");
+    verify(service).getData("other-url");
   }
 
   @Test
@@ -138,9 +139,9 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer");
 
     doReturn(true).when(service).validateInfosystem(anyString());
-    doReturn("[]").when(service).getApprovalData();
+    doReturn(new JSONArray("[]")).when(service).getApprovalData();
     doReturn(array(json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer", "http://base.url/shortname1", "2016-01-01T00:00:00")))
-      .when(service).getDataAsJsonArray("data-url");
+      .when(service).getData("data-url");
 
     service.harvestInfosystems();
 
@@ -159,13 +160,13 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url", "producer,producer3");
     doReturn(true).when(service).validateInfosystem(anyString());
 
-    doReturn("[]").when(service).getApprovalData();
+    doReturn(new JSONArray("[]")).when(service).getApprovalData();
 
     doReturn(array(json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00"), json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00")))
-      .when(service).getDataAsJsonArray("data-url");
+      .when(service).getData("data-url");
 
     doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"), json("producer2", "http://base.url/shortname2", "2016-01-01T00:00:00")))
-      .when(service).getDataAsJsonArray("legacy-data-url");
+      .when(service).getData("legacy-data-url");
 
     service.harvestInfosystems();
 
@@ -185,8 +186,8 @@ public class HarvestServiceTest {
   }
 
   @Test(expected = HarvestService.UnreachableResourceException.class)
-  public void getDataAsJsonArray_returnsEmptyJsonArrayInCaseOfError() throws HarvestService.UnreachableResourceException {
-    service.getDataAsJsonArray("invalid-url");
+  public void getDataAsJsonArray_resourcetIsUnreachable() throws HarvestService.UnreachableResourceException {
+    service.getData("invalid-url");
   }
 
   @Test
@@ -205,10 +206,10 @@ public class HarvestServiceTest {
     service.producers.setProperty("data-url-ok2", "producer3");
 
     doReturn(true).when(service).validateInfosystem(anyString());
-    doReturn("[]").when(service).getApprovalData();
-    doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"))).when(service).getDataAsJsonArray("data-url-ok1");
-    doThrow(mock(HarvestService.UnreachableResourceException.class)).when(service).getDataAsJsonArray("data-url-fail");
-    doReturn(array(json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00"))).when(service).getDataAsJsonArray("data-url-ok2");
+    doReturn(new JSONArray("[]")).when(service).getApprovalData();
+    doReturn(array(json("producer1", "http://base.url/shortname1", "2016-01-01T00:00:00"))).when(service).getData("data-url-ok1");
+    doThrow(mock(HarvestService.UnreachableResourceException.class)).when(service).getData("data-url-fail");
+    doReturn(array(json("producer3", "http://base.url/shortname3", "2016-01-01T00:00:00"))).when(service).getData("data-url-ok2");
 
     service.harvestInfosystems();
 
@@ -224,8 +225,8 @@ public class HarvestServiceTest {
       infosystems.get(1).getJson().toString(), true);
   }
 
-  private String array(String... objects) {
-    return "[" + stream(objects).collect(Collectors.joining(",")) + "]";
+  private JSONArray array(String... objects) {
+    return new JSONArray("[" + stream(objects).collect(Collectors.joining(",")) + "]");
   }
 
   private String json(String ownerCode, String uri, String statusTimestamp) {
