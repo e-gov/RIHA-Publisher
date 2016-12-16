@@ -86,6 +86,7 @@ public class HarvestService {
     }
 
     List<Infosystem> result = new ArrayList<>();
+    int added = 0;
     for (int i = 0; i < infosystems.length(); i++) {
       JSONObject infosystemJson = infosystems.getJSONObject(i);
       if (!validateInfosystem(infosystemJson.toString())) {
@@ -100,7 +101,9 @@ public class HarvestService {
       }
 
       result.add(infosystem);
+      added++;
     }
+    logger.info("{} processing finished, added {}/{} infosystems", url, added, infosystems.length());
     return result;
   }
 
