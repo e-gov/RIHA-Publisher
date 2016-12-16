@@ -1,5 +1,9 @@
 package ee.ria.riha.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import ee.ria.riha.models.Infosystem;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -84,10 +88,19 @@ public class HarvestService {
     JSONArray infosystems = new JSONArray(data);
     List<Infosystem> result = new ArrayList<>();
     for (int i = 0; i < infosystems.length(); i++) {
-      Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
-      if (allowedOwners== null || allowedOwners.contains(infosystem.getOwner())) {
-        result.add(infosystem);
+      JSONObject infosystemJson = infosystems.getJSONObject(i);
+      if (!validateInfosystem(infosystemJson.toString())) {
+        logger.warn("Skipping infosystem, invalid json: " + infosystemJson.toString());
+        continue;
       }
+
+      Infosystem infosystem = new Infosystem(infosystemJson);
+      if (allowedOwners != null && !allowedOwners.contains(infosystem.getOwner())) {
+        logger.warn("Skipping infosystem, owner code '{}' not whitelisted for url: {}", infosystem.getOwner(), url);
+        continue;
+      }
+
+      result.add(infosystem);
     }
     return result;
   }
@@ -172,6 +185,20 @@ public class HarvestService {
   static class UnreachableResourceException extends Exception {
     UnreachableResourceException(Exception e) {
       super(e);
+    }
+  }
+
+  boolean validateInfosystem(String infosystemJson) {
+    try {
+      String schemaJson = new String(Files.readAllBytes(Paths.get("infosystem-schema.json")));
+      JsonNode schemaNode = new ObjectMapper().readValue(schemaJson, JsonNode.class);
+      JsonNode infosystemNode = new ObjectMapper().readValue(infosystemJson, JsonNode.class);
+      ProcessingReport report = JsonSchemaFactory.byDefault().getJsonSchema(schemaNode).validate(infosystemNode);
+      return report.isSuccess();
+    }
+    catch (Exception e) {
+      logger.error("Error validating infosystem", e);
+      return false;
     }
   }
 }
