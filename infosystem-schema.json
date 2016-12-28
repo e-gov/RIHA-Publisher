@@ -1,0 +1,83 @@
+{
+  "description": "Süsteemi lühiandmestik. Andmed, mis on peamiselt olulised süsteemi elutsükli mõttes",
+  "type": "object",
+  "required": [
+    "uri",
+    "shortname",
+    "owner"
+  ],
+  "properties": {
+    "uri": {
+      "type": "string",
+      "description": "Süsteemi unikaalselt identifitseeriv URI. HTTP GET sellel aadressil peab tagastama detailed_system tüüpi objekti"
+    },
+    "name": {
+      "type": "string",
+      "description": "Süsteemi täispikk, ametlik, nimi"
+    },
+    "shortname": {
+      "type": "string",
+      "description": "Süsteemi lühinimi"
+    },
+    "owner": {
+      "type": "object",
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Süsteemi vastutava töötleja registrikood"
+        },
+        "name": {
+          "type": "string",
+          "description": "Süsteemi vastutava töötleja nimi"
+        }
+      }
+    },
+    "documentation": {
+      "type": "string",
+      "description": "URL, mis viitab süsteemi dokumentatsiooni avalikule asukohale"
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "system_status": {
+          "type": "object",
+          "description": "Süsteemi olek",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Staatuse tekstiline kirjeldus"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "UTC",
+              "description": "Staatuse saamise aeg"
+            }
+          }
+        },
+        "approval_status": {
+          "type": "object",
+          "description": "Süsteemi kooskõlastuse olek",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Staatuse tekstiline kirjeldus"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "UTC",
+              "description": "Staatuse saamise aeg"
+            }
+          }
+        },
+        "description_timestamp": {
+          "type": "string",
+          "format": "UTC",
+          "description": "Süsteemi kohta väljastatava info viimase muutmise aeg"
+        }
+      }
+    }
+  }
+}

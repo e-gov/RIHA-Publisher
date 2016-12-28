@@ -1,5 +1,9 @@
 package ee.ria.riha.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import ee.ria.riha.models.Infosystem;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,7 +43,14 @@ public class HarvestService {
   @Scheduled(cron = "${harvester.cron}")
   public void harvestInfosystems() {
     logger.info("Started");
-    List<Infosystem> infosystems = addApprovals(getInfosystems());
+    Map<String, JSONObject> approvals;
+    try {
+      approvals = getApprovals();
+    } catch (UnreachableResourceException e) {
+      logger.info("Skipping harvesting - could not get approval information!", e);
+      return;
+    }
+    List<Infosystem> infosystems = addApprovals(getInfosystems(), approvals);
     infosystemStorageService.save(infosystems);
     logger.info("Finished");
   }
@@ -50,7 +61,7 @@ public class HarvestService {
       allInfosystems.addAll(getInfosystemsWithoutOwnerRestriction(legacyProducerUrl));
     }
 
-    Properties producers = getProducers();
+    initProducers();
 
     for (String url : producers.stringPropertyNames()) {
       List<String> allowedOwners = asList(producers.getProperty(url).split(","));
@@ -65,21 +76,39 @@ public class HarvestService {
   }
 
   private List<Infosystem> getInfosystems(String url, List<String> allowedOwners) {
-    String data = getDataAsJsonArray(url);
-
-    JSONArray infosystems = new JSONArray(data);
-    List<Infosystem> result = new ArrayList<>();
-    for (int i = 0; i < infosystems.length(); i++) {
-      Infosystem infosystem = new Infosystem(infosystems.getJSONObject(i));
-      if (allowedOwners== null || allowedOwners.contains(infosystem.getOwner())) {
-        result.add(infosystem);
-      }
+    JSONArray infosystems;
+    try {
+      infosystems = getData(url);
     }
+    catch (UnreachableResourceException e) {
+      logger.error("Skipping producer - failed to get data from: " + url);
+      return Collections.emptyList();
+    }
+
+    List<Infosystem> result = new ArrayList<>();
+    int added = 0;
+    for (int i = 0; i < infosystems.length(); i++) {
+      JSONObject infosystemJson = infosystems.getJSONObject(i);
+      if (!validateInfosystem(infosystemJson.toString())) {
+        logger.warn("Skipping infosystem, invalid json: " + infosystemJson.toString());
+        continue;
+      }
+
+      Infosystem infosystem = new Infosystem(infosystemJson);
+      if (allowedOwners != null && !allowedOwners.contains(infosystem.getOwner())) {
+        logger.warn("Skipping infosystem, owner code '{}' not whitelisted for url: {}", infosystem.getOwner(), url);
+        continue;
+      }
+
+      result.add(infosystem);
+      added++;
+    }
+    logger.info("{} processing finished, added {}/{} infosystems", url, added, infosystems.length());
     return result;
   }
 
-  private ArrayList<Infosystem> merge(List<Infosystem> infosystems) {
-    ArrayList<Infosystem> result = new ArrayList<>();
+  private List<Infosystem> merge(List<Infosystem> infosystems) {
+    List<Infosystem> result = new ArrayList<>();
 
     for (Infosystem infosystem : infosystems) {
       Infosystem existing = result.stream().filter(i -> i.getId().equals(infosystem.getId())).findAny().orElse(null);
@@ -94,20 +123,12 @@ public class HarvestService {
     return result;
   }
 
-  private Properties getProducers() {
-    if (producers == null) {
-      initProducers();
-    }
-    return producers;
-  }
-
-  private void initProducers() {
+  void initProducers() {
     Path path = Paths.get("producers.db");
-
-    producers = new Properties();
     if (!path.toFile().exists()) return;
 
     try (InputStream inputStream = Files.newInputStream(path)) {
+      producers = new Properties();
       producers.load(inputStream);
     }
     catch (IOException e) {
@@ -116,19 +137,20 @@ public class HarvestService {
     }
   }
 
-  private List<Infosystem> addApprovals(List<Infosystem> infosystems) {
-    merge(infosystems, getApprovals());
+  private List<Infosystem> addApprovals(List<Infosystem> infosystems, Map<String, JSONObject> approvals) {
+    merge(infosystems, approvals);
     return infosystems;
   }
 
-  private Map<String, JSONObject> getApprovals() {
-    JSONArray approvals = new JSONArray(getApprovalData());
+  private Map<String, JSONObject> getApprovals() throws UnreachableResourceException {
+    JSONArray approvals = getApprovalData();
+
     Map<String, JSONObject> approvalsById = new HashMap<>();
     for (int i = 0; i < approvals.length(); i++) {
       JSONObject jsonObject = approvals.getJSONObject(i);
-      String id = jsonObject.getString("id");
-      jsonObject.remove("id");
-      approvalsById.put(id, jsonObject);
+      String uri = jsonObject.getString("uri");
+      jsonObject.remove("uri");
+      approvalsById.put(uri, jsonObject);
     }
     return approvalsById;
   }
@@ -142,17 +164,36 @@ public class HarvestService {
     }
   }
 
-  String getDataAsJsonArray(String url) {
+  JSONArray getData(String url) throws UnreachableResourceException {
     try {
-      return Get(url).execute().returnContent().asString();
+      return new JSONArray(Get(url).execute().returnContent().asString());
     }
-    catch (IOException e) {
-      logger.warn("Could not fetch data from: " + url, e);
-      return "[]";
+    catch (Exception e) {
+      throw new UnreachableResourceException(e);
     }
   }
 
-  String getApprovalData() {
-    return getDataAsJsonArray(approvalsUrl);
+  JSONArray getApprovalData() throws UnreachableResourceException {
+    return getData(approvalsUrl);
+  }
+
+  static class UnreachableResourceException extends Exception {
+    UnreachableResourceException(Exception e) {
+      super(e);
+    }
+  }
+
+  boolean validateInfosystem(String infosystemJson) {
+    try {
+      String schemaJson = new String(Files.readAllBytes(Paths.get("infosystem-schema.json")));
+      JsonNode schemaNode = new ObjectMapper().readValue(schemaJson, JsonNode.class);
+      JsonNode infosystemNode = new ObjectMapper().readValue(infosystemJson, JsonNode.class);
+      ProcessingReport report = JsonSchemaFactory.byDefault().getJsonSchema(schemaNode).validate(infosystemNode);
+      return report.isSuccess();
+    }
+    catch (Exception e) {
+      logger.error("Error validating infosystem", e);
+      return false;
+    }
   }
 }
