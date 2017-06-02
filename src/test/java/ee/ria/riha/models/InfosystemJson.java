@@ -11,6 +11,7 @@ public class InfosystemJson {
   String name;
   String shortname;
   String documentation;
+  String objective;
   Owner owner;
   Meta meta;
   String uri;

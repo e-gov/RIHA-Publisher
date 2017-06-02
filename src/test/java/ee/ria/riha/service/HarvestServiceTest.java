@@ -62,7 +62,7 @@ public class HarvestServiceTest {
     assertEquals(2, infosystems.size());
 
     JSONAssert.assertEquals(
-      json("producer", "http://base.url/shortname1", "", "MITTE KOOSKÕLASTATUD", "2016-01-01T10:00:00", null),
+      json("producer", "http://base.url/shortname1", "", "MITTE KOOSKÕLASTATUD", "2016-01-01T10:00:00", null, null),
       infosystems.get(0).getJson().toString(), true);
 
     JSONAssert.assertEquals(json("producer", "/70000740/\\u00d5ppurite register", ""),
@@ -71,10 +71,11 @@ public class HarvestServiceTest {
 
   @Test
   public void validateInfosystem_requiredFields() {
-    assertTrue(service.validateInfosystem(json("ownerCode", "http://base.url/short-name", null, null, null, "short-name")));
-    assertFalse(service.validateInfosystem(json(null, "http://base.url/short-name", null, null, null, "short-name")));
-    assertFalse(service.validateInfosystem(json("ownerCode", null, null, null, null, "short-name")));
-    assertFalse(service.validateInfosystem(json("ownerCode", "http://base.url/short-name", null, null, null, null)));
+    assertTrue(service.validateInfosystem(json("ownerCode", "http://base.url/short-name", null, null, null, "short-name", "objective" )));
+    assertFalse(service.validateInfosystem(json(null, "http://base.url/short-name", null, null, null, "short-name", "objective" )));
+    assertFalse(service.validateInfosystem(json("ownerCode", null, null, null, null, "short-name", "objective" )));
+    assertFalse(service.validateInfosystem(json("ownerCode", "http://base.url/short-name", null, null, null, null, "objective" )));
+    assertFalse(service.validateInfosystem(json("ownerCode", "http://base.url/short-name", null, null, null, "short-name", null)));
   }
 
   @Test
@@ -84,6 +85,7 @@ public class HarvestServiceTest {
         .setOwner(new Owner().setCode("ownerCode"))
         .setUri("http://base.url/short-name")
         .setShortname("short-name")
+        .setObjective("objective")
       .setMeta(new Meta().setSystem_status(new SystemStatus().setTimestamp("2016-01-01T10:00:00")))
       ).toString())
     );
@@ -234,10 +236,10 @@ public class HarvestServiceTest {
   }
 
   private String json(String ownerCode, String uri, String statusTimestamp) {
-    return json(ownerCode, uri, statusTimestamp, null, null, null);
+    return json(ownerCode, uri, statusTimestamp, null, null, null, null);
   }
 
-  private String json(String ownerCode, String uri, String statusTimestamp, String approvalStatus, String approvalTimestamp, String shortName) {
+  private String json(String ownerCode, String uri, String statusTimestamp, String approvalStatus, String approvalTimestamp, String shortName, String objective) {
     InfosystemJson json = new InfosystemJson();
 
     if (approvalStatus != null || approvalTimestamp != null || statusTimestamp != null) {
@@ -255,6 +257,7 @@ public class HarvestServiceTest {
 
     json.setUri(uri);
     json.setShortname(shortName);
+    json.setObjective(objective);
 
     return new JSONObject(json).toString();
   }
